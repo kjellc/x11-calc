@@ -474,6 +474,10 @@
 #include "gcc-debug.h"  /* debug() */
 #include "gcc-exists.h" /* i_isfile(), i_isdir(), i_exists() */
 
+#if defined(HP67)
+#include "x11-calc-card-67.h"
+#endif
+
 #if defined(unix) || defined(__unix__) || defined(__APPLE__)
 #include <sys/stat.h>
 #endif
@@ -753,12 +757,12 @@ static void v_fprint_register(FILE *h_file, oregister *h_register) /* Print the 
    int i_count;
    if (h_register != NULL)
    {
-      fprintf(h_file, "\treg[");
+      fprintf(h_file, "\tr[");
       if (h_register->id < 0)
          fprintf(h_file, "\'%c\'", c_name[h_register->id * -1 - 1]);
       else
-         fprintf(h_file, "%03d", h_register->id);
-      fprintf(h_file, "] = 0x");
+         fprintf(h_file, "%02x", h_register->id);
+      fprintf(h_file, "]: ");
       for (i_count = REG_SIZE - 1; i_count >=0 ; i_count--)
          fprintf(h_file, "%1x", h_register->nibble[i_count]);
    }
@@ -772,7 +776,7 @@ static void v_fprint_status(FILE *h_file, oprocessor *h_processor) /* Display th
       i_temp <<= 1;
       if (h_processor->status[i_count]) i_temp |= 1;
    }
-   fprintf(h_file, "\tstatus = 0x%04X%11c  ", i_temp, ' ');
+   fprintf(h_file, "\tstatus = 0x%04X%3c  ", i_temp, ' ');
 }
 
 static void v_fprint_flags(FILE *h_file, oprocessor *h_processor) /* Display the current processor flags */
@@ -780,7 +784,7 @@ static void v_fprint_flags(FILE *h_file, oprocessor *h_processor) /* Display the
    int i_count, i_temp = 0;
    for (i_count = 0; i_count < FLAGS; i_count++)
       i_temp += h_processor->flags[i_count] << i_count;
-   fprintf(h_file, "\tflags = 0x%04X%12c   ", i_temp, ' ');
+   fprintf(h_file, "\tflags = 0x%04X%4c   ", i_temp, ' ');
 }
 
 #if defined(HP10)
@@ -817,20 +821,24 @@ void v_fprint_registers(FILE *h_file, oprocessor *h_processor) /* Display curren
       int i_count;
       for (i_count = 0; i_count < REGISTERS; i_count++)
       {
-         if ((i_count % 3 == 0) && (i_count > 0)) fprintf(h_file, "\n");
+         if ((i_count % 4 == 0) && (i_count > 0)) fprintf(h_file, "\n");
          v_fprint_register(h_file, h_processor->reg[i_count]);
       }
       fprintf(h_file, "\n");
       for (i_count = 0; i_count < MEMORY_SIZE; i_count++)
       {
-         if (i_count % 3 == 0) fprintf(h_file, "\n");
+         if (i_count % 4 == 0) fprintf(h_file, "\n");
          v_fprint_register(h_file, h_processor->mem[i_count]);
       }
       fprintf(h_file, "\n");
       v_fprint_flags(h_file, h_processor);
       v_fprint_status(h_file, h_processor);
       fprintf(h_file, "\tp = %d\t\t", h_processor->p);
-      fprintf(h_file, "  addr = %02d\n", h_processor->addr);
+      fprintf(h_file, "\taddr = 0x%04x (%02d)\n", h_processor->addr, h_processor->addr);
+#if defined(HP67)
+      fprintf(h_file, "\tSP = %d\t\t", h_processor->sp);
+      fprintf(h_file, "\tf4 = %d\n", h_processor->crc[FUNCTION]);
+#endif
    }
 }
 
@@ -1064,6 +1072,13 @@ void v_processor_reset(oprocessor *h_processor) /* Reset processor */
 #if defined(HP10)
    /** h_processor->print = NORMAL; /* Don't reset printer state it is set from switches */
    for (i_count = 0; i_count < BUFSIZE; i_count++) /* Reset the character buffer contents */
+
+#if defined(HP67)
+         i_temp = 0;
+         fscanf(h_file, "%x,", &i_temp);
+         h_processor->crc[FUNCTION] = i_temp;  /* restore the function-key state */
+#endif
+
       h_processor->buffer[i_count] = 0x3f;
 #endif
 #if defined(HP10c) || defined(HP11c) || defined(HP12c) || defined(HP15c) || defined(HP16c)
@@ -1112,6 +1127,10 @@ static void v_op_inc_pt(oprocessor *h_processor) /* Increment active pointer */
          *h_active_pointer(h_processor) = *h_active_pointer(h_processor) + 1;
       else
       {
+#if defined(HP67)
+         /* save the default function-key state (labels if a prgm is loaded, else functions) */
+         fprintf(h_file, "%02x,\n", h_processor->crc[FUNCTION]);
+#endif
          if (h_processor->opcode != h_processor->rom[h_processor->pc - 1]) /* Literally the only way to work out if the pointer */
             *h_active_pointer(h_processor) = *h_active_pointer(h_processor) + 1; /* should be incremented when it is zero is to check the previous opcode ! */
       }
@@ -1274,6 +1293,7 @@ void v_processor_tick(oprocessor *h_processor) /* Decode and execute a single in
 #if defined(HP67) /* Seems to use a flag rather then the status word for the switch position */
       if (h_processor->keypressed) h_processor->status[15] = True; /* Set status bit 15 if key pressed */
       h_processor->flags[MODE] = h_processor->mode; /* Set the program mode flag based on switch position */
+      h_processor->turbo_off = False;  /* Turbo OK again */
 #endif
 
 #if defined(HP31e) || defined(HP32e) || defined(HP33e) || defined(HP33c) || defined(HP34c) || defined(HP37e) || defined(HP38e) || defined(HP38c) /* Setting S(5) breaks the self test */
@@ -1614,8 +1634,11 @@ void v_processor_tick(oprocessor *h_processor) /* Decode and execute a single in
             case 00: /* Op-Codes matching x xxx 000 000 */
                switch (i_opcode)
                {
-               case 00000: /* nop */
+               case 00000: /* 000 nop */
                   if (h_processor->trace) fprintf(stdout, "nop");
+#if defined(HP67)
+                  h_processor->turbo_off = True;  /* nop used in delay loop, remove turbo mode temporarily */
+#endif
                   break;
 #if defined(HP67)
                /*
@@ -1631,55 +1654,57 @@ void v_processor_tick(oprocessor *h_processor) /* Decode and execute a single in
                 * 01500   Test waiting for card side 2 flag
                 * 01700   Read/Write data to/from card via RAM $99 and $9B
                 */
-               case 00100: /* test motor on */
-                  if (h_processor->trace) fprintf(stdout, "test motor on");
-                  h_processor->status[3] = True; /* device always ready */
-                  h_processor->crc[CARD] = False;
+               case 00100: /* 040 test/clear motor on (crc buffer ready) */
+                  if (h_processor->trace) fprintf(stdout, "test motor on (crc ready)");
+                  h_processor->status[3] = True;     /* device/buffer is always ready */
+                  h_processor->crc[BUFFER] = True ;  /* Buffer is ready after test/clear */
                   break;
-               case 00300: /* test mode flag */
+               case 00300: /* 080 test mode flag */
                   if (h_processor->trace) fprintf(stdout, "test mode flag (%d)", !h_processor->flags[MODE] );
                   h_processor->status[3] = !h_processor->flags[MODE]; /* Test the PRGM/RUN switch */
                   break;
-               case 00400: /* set key pressed flag */
+               case 00400: /* 0c0 set key pressed flag */
                   if (h_processor->trace) fprintf(stdout, "set key pressed flag");
                   h_processor->crc[ANYKEY] = True; /* Sets the any key pressed flag */
                   break;
-               case 00500: /* test key pressed flag */ /* f -x- */
+               case 00500: /* 100 test key pressed flag */ /* f -x- */
                   if (h_processor->trace) fprintf(stdout, "test key pressed flag");
                   h_processor->status[3] = h_processor->crc[ANYKEY];
                   if (h_processor->crc[ANYKEY]) h_processor->crc[ANYKEY] = False;
                   break;
-               case 01000: /* set default function flag */
+               case 01000: /* 200 set default function flag */
                   if (h_processor->trace) fprintf(stdout, "set flag 4");
                   h_processor->crc[FUNCTION] = True;
                   break;
-               case 01100: /* test default function key flag */
+               case 01100: /* 240 test default function key flag */
                   if (h_processor->trace) fprintf(stdout, "test flag 4");
                   h_processor->status[3] = h_processor->crc[FUNCTION];
                   if (h_processor->crc[FUNCTION]) h_processor->crc[FUNCTION] = False;
                   break;
-               case 01200: /* set merge flag */
+               case 01200: /* 280 set merge flag */
                   if (h_processor->trace) fprintf(stdout, "set merge flag");
                   h_processor->crc[MERGE] = True;
                   break;
-               case 01300: /* test merge flag */
+               case 01300: /* 2c0 test merge flag */
                   if (h_processor->trace) fprintf(stdout, "clear flag 0");
                   h_processor->status[3] = h_processor->crc[MERGE];
                   if (h_processor->crc[MERGE]) h_processor->crc[MERGE] = False;
                   break;
-               case 01400: /* set waiting flag */
-                  if (h_processor->trace) fprintf(stdout, "clear waiting flag");
+               case 01400: /* 300 set waiting flag */
+                  if (h_processor->trace) fprintf(stdout, "set waiting flag");
                   h_processor->crc[PAUSE] = True;
                   break;
-               case 01500: /* test pause flag ? */
+               case 01500: /* 340 test/clear pause flag ? */
                   if (h_processor->trace) fprintf(stdout, "clear flag 1");
                   h_processor->status[3] = h_processor->crc[PAUSE];
                   if (h_processor->crc[PAUSE]) h_processor->crc[PAUSE] = False;
                   break;
-               case 01700: /* read from or write to card */
+               case 01700: /* 3c0 read from or write to card */
                   if (h_processor->trace) fprintf(stdout, "card read write");
                   h_processor->status[3] = h_processor->crc[PAUSE];
                   if (h_processor->crc[PAUSE]) h_processor->crc[PAUSE] = False;
+                  v_card_read_write_record(h_processor);   /* read or write one record to/from the buffer register */
+                  h_processor->crc[BUFFER] = False;        /* buffer empty now, must test before next r/w */
                   break;
 #endif
                default:
@@ -1813,30 +1838,36 @@ void v_processor_tick(oprocessor *h_processor) /* Decode and execute a single in
                 * 00660   Set card write mode
                 * 00760   Set card read mode
                 */
-               case 00060: /* set display digits */
+               case 00060: /* 030 set display digits */
                   if (h_processor->trace) fprintf(stdout, "set display digits");
                   h_processor->crc[DISPLAY] = True;
                   break;
-               case 00160: /* test display digits */
+               case 00160: /* 070 test display digits */
                   if (h_processor->trace) fprintf(stdout, "test display digits");
                   h_processor->status[3] = h_processor->crc[DISPLAY];
                   if (h_processor->crc[DISPLAY]) h_processor->crc[DISPLAY] = False;
                   break;
-               case 00260: /* card reader motor on */
+               case 00260: /* 0b0 card reader motor on */
                   if (h_processor->trace) fprintf(stdout, "motor on");
+                  v_card_open_file(h_processor);    /* prompt user and open card read or save file */
+                  h_processor->crc[CARD] = False ;  /* kjc: Card removed immediately after starting */
+                  //h_processor->flags[DISPLAY_ENABLE] = True;  /* kjc: enable again */
                   break;
-               case 00360: /* card reader motor off */
+               case 00360: /* 0f0 card reader motor off */
                   if (h_processor->trace) fprintf(stdout, "motor off");
+                  v_card_close_file(h_processor);  /* card removed, close file */
                   break;
-               case 00560: /* test card inserted */
+               case 00560: /* 170 test card inserted */
                   if (h_processor->trace) fprintf(stdout, "test card inserted");
                   h_processor->status[3] = h_processor->crc[CARD]; /* Test if card is inserted */
                   break;
-               case 00660: /* card reader set write mode */
+               case 00660: /* 1b0 card reader set write mode */
                   if (h_processor->trace) fprintf(stdout, "set write mode");
+                  h_processor->crc[WRITE] = True;
                   break;
-               case 00760: /* card reader set read mode */
+               case 00760: /* 1f0 card reader set read mode */
                   if (h_processor->trace) fprintf(stdout, "set read mode");
+                  h_processor->crc[WRITE] = False;
                   break;
 #endif
                case 01060: /* bank switch */
@@ -1877,7 +1908,10 @@ void v_processor_tick(oprocessor *h_processor) /* Decode and execute a single in
 #else
 #if (defined(HP67)) && defined(CONTINIOUS)
                      if (h_processor->crc[READY])
-                        h_processor->crc[READY]++;
+                     {
+                        if ((h_processor->addr & ~0x0f) < 0x40)
+                           h_processor->crc[READY]++; // only count initial clear-data-regs skip for the lower 64 addresses
+                     }
                      else
 #endif
                      {
@@ -1995,7 +2029,7 @@ void v_processor_tick(oprocessor *h_processor) /* Decode and execute a single in
                               h_processor->status[i_count] = False; /* Clear all bits except bits 1, 2, 5, 15 */
                         }
                   }
-               if (h_processor->trace) v_fprint_status(stdout, h_processor);
+                  if (h_processor->trace) v_fprint_status(stdout, h_processor);
                   break;
                case 00210: /* display toggle */
                   if (h_processor->trace) fprintf(stdout, "display toggle");
@@ -2133,6 +2167,11 @@ void v_processor_tick(oprocessor *h_processor) /* Decode and execute a single in
                {
                   h_processor->first = 0; h_processor->last = REG_SIZE - 1;
                   v_reg_copy(h_processor, h_processor->mem[h_processor->addr], h_processor->reg[C_REG]); /* C -> reg(n) */
+                  /* debug
+                  if (h_processor->addr == 0xfe) {
+                     fprintf(stdout, "Write to 0x%x, pc=0x%x\n", h_processor->addr, h_processor->pc);
+                  }
+                  */
                }
                else
                {

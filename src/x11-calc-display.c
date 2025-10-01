@@ -115,6 +115,7 @@
 
 #include <stdlib.h>    /* malloc(), etc. */
 #include <stdio.h>     /* fprintf(), etc. */
+#include <string.h>    /* memcmp(), memcpy() */
 
 #include <X11/Xlib.h>  /* XOpenDisplay(), etc. */
 #include <X11/Xutil.h> /* XSizeHints etc. */
@@ -134,6 +135,10 @@
 #include "x11-calc.h"
 
 #include "gcc-debug.h"
+
+#if defined(HP67)
+#include "x11-calc-67.h"  /* c_prgm_to_mnemonic */
+#endif
 
 /*
  * display_create (index, text, left, top, width, height,
@@ -198,6 +203,18 @@ struct odisplay *h_display_create(int i_index, int i_left, int i_top, int i_widt
    {
       h_display->digit[i_count]->mask = DISPLAY_SPACE;
    }
+
+#if defined(HP67)
+   /* define a small window (label) located just under the normal display */
+   i_top += i_display_height - h_small_font->descent - h_small_font->ascent - 1; /* just under normal display */
+   fprintf(stdout, "ascent=%d, descent=%d, height=%d, left=%d, width=%d\n",
+           h_small_font->ascent, h_small_font->descent, i_display_height, i_display_left, i_display_width );
+   i_height = h_small_font->ascent + h_small_font->descent;
+   i_width = 1 + XTextWidth(h_small_font, "MNEMONIC", 8) * SCALE_WIDTH;
+   i_left = i_display_left + i_display_width - i_width;  /* put on the right side */
+   h_display->label_mnemonic = h_label_create(001, "MNEMONIC", h_small_font, i_left, i_top,
+      i_width, i_height, i_foreground, i_background, False);
+#endif
 
 #if defined(HP10c) || defined(HP11c) || defined(HP12c) || defined(HP15c) || defined(HP16c)
    i_top += i_display_height - h_small_font->descent;
@@ -273,6 +290,10 @@ int i_display_draw(Display *x_display, int x_application_window, int i_screen, s
    for (i_count = 0; i_count < DIGITS; i_count++) /* Draw each digit. */
       if (!(h_display->digit[i_count] == NULL)) i_digit_draw(x_display, x_application_window, i_screen, h_display->digit[i_count]);
 
+#if defined(HP67)
+   i_label_draw(x_display, x_application_window, i_screen, h_display->label_mnemonic);
+#endif
+
 #if defined(HP10c) || defined(HP11c) || defined(HP12c) || defined(HP15c) || defined(HP16c)
    for (i_count = 0; i_count < INDECATORS; i_count++)
       if (!(h_display->label[i_count] == NULL)) i_label_draw(x_display, x_application_window, i_screen, h_display->label[i_count]);
@@ -337,6 +358,47 @@ int i_display_update(struct odisplay *h_display, oprocessor *h_processor)
       DISPLAY_EIGHT, DISPLAY_NINE, DISPLAY_r, DISPLAY_C, DISPLAY_o, DISPLAY_d, DISPLAY_E, DISPLAY_SPACE
    };
 
+#if 0 // DID NOT WORK! - FLICKER DUE TO X RERESH
+   /* avoid re-draw of identical A */
+   if (h_processor->flags[DISPLAY_ENABLE] && h_processor->enabled) {
+      if (memcmp(h_display->last_a_nibble, h_processor->reg[A_REG]->nibble, REG_SIZE) == 0)
+         return (True);
+      memcpy(h_display->last_a_nibble, h_processor->reg[A_REG]->nibble, REG_SIZE);
+   }
+   else {
+      memset(h_display->last_a_nibble, 0, REG_SIZE);
+   }
+#endif
+
+#if 0   //--- debug
+   if (!(h_processor->flags[DISPLAY_ENABLE] && h_processor->enabled)) {
+      fprintf(stdout, "-----------DISABLED------------------");
+   }
+
+   fprintf(stdout, "A: ");
+   for (i_count = REG_SIZE - 1; i_count >=0 ; i_count--) {
+      fprintf(stdout, "%02x ", h_processor->reg[A_REG]->nibble[i_count]);
+   }
+   fprintf(stdout, "\nB: ");
+   for (i_count = REG_SIZE - 1; i_count >=0 ; i_count--) {
+      fprintf(stdout, "%02x ", h_processor->reg[B_REG]->nibble[i_count]);
+   }
+   fprintf(stdout, "\n");
+#endif
+
+#if defined(HP67)
+   /* in prgm mode, create a prgm mnemonic to be displayed under the normal display */
+   h_display->label_mnemonic->state = False;  /* assume not to show the label */
+   if (h_processor->flags[MODE] == False || /* pgm mode or... */
+       h_processor->crc[ANYKEY]) {          /*  a key pressed (SST/BST) */
+      const char* mnemonics = c_prgm_to_menmonic(h_processor->reg[A_REG]->nibble);
+      if (mnemonics != NULL) {
+         h_display->label_mnemonic->text = (char*)mnemonics;
+         h_display->label_mnemonic->state = True;  /* show the label */
+      }
+   }
+#endif
+
    for (i_count = 0; i_count < DIGITS; i_count++)
    {
       if (h_display->digit[i_count] != NULL)
@@ -348,8 +410,10 @@ int i_display_update(struct odisplay *h_display, oprocessor *h_processor)
             case 0: /* Ignore */
                break;
             case 12: /* Sign */
-               if (h_processor->reg[A_REG]->nibble[REG_SIZE - i_count] == 0x0F)
+               if (h_processor->reg[A_REG]->nibble[REG_SIZE - i_count] == 0x0F) { /* space, then no signs*/
                   h_display->digit[i_count]->mask = DISPLAY_SPACE;
+                  h_display->digit[0]->mask = DISPLAY_SPACE;
+               }
                else
                {
                   if (h_processor->reg[A_REG]->nibble[REG_SIZE - i_count] & 0x01)

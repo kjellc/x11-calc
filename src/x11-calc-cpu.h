@@ -67,6 +67,8 @@
  *
  */
 
+#include <stdio.h>
+
 #ifndef REGISTERS
 #include "x11-calc.h"
 
@@ -110,8 +112,10 @@
 #define MOTOR           5              /* Motor on */
 #define FUNCTION        6              /* Default function flag */
 #define READY           7
+#define WRITE           8              /* Write Mode (false = Read Mode) */
+#define BUFFER          9              /* Card R/W buffer state (true = Ready) */
 
-#define STATES          8
+#define STATES          10
 #endif
 
 #if defined(HP10)
@@ -138,6 +142,9 @@ typedef struct {
    unsigned char status[STATUS_BITS];  /* Status (S0 - S15) */
 #if defined(HP67)
    unsigned char crc[STATES];          /* Card reader states */
+   FILE* card_file;                    /* Open card file (NULL = not opened) */
+   int card_records;                   /* Number of records read/written, cleared at open */
+   int turbo_off;                      /* turbo execution speed disabled (temporarily) */
 #endif
    unsigned int opcode;                /* Last opcode */
    unsigned int pc;                    /* Program counter */

@@ -75,6 +75,7 @@
 int i_wait(long l_delay)
 {
 #if defined(linux) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__solaris__) || defined(__osf__)
+if (l_delay == 0) return usleep(100);  /*kjc*/
 return (usleep(l_delay * 1000)); /* Use usleep() function */
 #elif defined(VMS)
 float f_seconds;

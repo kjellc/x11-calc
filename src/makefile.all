@@ -44,15 +44,20 @@ COMPILER	= `$(CC) -v 2>&1 | grep ' version ' | sed -e 's/([^()]*)//g' | sed -e '
 
 # SHARED sources are model-dependant via HP$(MODEL) #define statements
 SHARED	= x11-calc.c x11-calc-cpu.c x11-calc-display.c x11-calc-digit.c x11-calc-messages.c x11-calc-button.c
+SHARED += x11-calc-card-67.c
 COMMON	= x11-calc-switch.c x11-calc-label.c x11-calc-colour.c x11-calc-font.c x11-keyboard.c gcc-wait.c gcc-exists.c
 
 CC		= cc
 DEBUG	=
 
 LDLIBS_ADD	= -lX11 -lm
+LDLIBS_ADD += `pkg-config --libs gtk+-3.0`
 
 CFLAGS_ADD	= -D$(LANG) -D__compiler__="\"$(COMPILER)\"" $(DEBUG) -fcommon -Wall -pedantic -std=gnu99 \
-			-Wno-comment -Wno-deprecated-declarations # -Wno-builtin-macro-redefined
+			-Wno-comment -Wno-deprecated-declarations \
+            -Wno-unused-result
+#           # -Wno-builtin-macro-redefined
+CFLAGS_ADD += `pkg-config --cflags gtk+-3.0`
 
 all: $(BIN)/$(PROGRAM)
 

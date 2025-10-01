@@ -266,6 +266,8 @@ The following command line options are available:
       --version            output version information and exit
 ```
 
+'Ctrl-I' On HP67: Opens the card read/write file selector. 
+
 #### Loading and saving
 
 For  models with continuous memory the contents of program memory and  data

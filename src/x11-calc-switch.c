@@ -151,6 +151,7 @@ int i_switch_draw(Display *h_display, int x_application_window, int i_screen, st
                i_off_colour = h_switch->alternate_colour;
                break;
             case 2:
+            default:
                i_on_colour = h_switch->alternate_colour;
                i_mid_colour = h_switch->alternate_colour;
                i_off_colour = h_switch->colour;

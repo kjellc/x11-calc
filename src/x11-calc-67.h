@@ -74,7 +74,7 @@
 #define SWITCH_HEIGHT      10 * SCALE_HEIGHT
 
 #define ROM_SIZE           020000
-#define MEMORY_SIZE        64
+#define MEMORY_SIZE        256
 #define CONTINIOUS
 
 extern int i_rom [ROM_SIZE];
@@ -83,4 +83,8 @@ void v_init_labels(struct olabel *h_label[]);
 
 void v_init_switches(struct oswitch *h_label[]);
 
+
+const char* c_prgm_to_menmonic(const unsigned char* rega_nibbles);
 void v_init_buttons(struct obutton *h_button[]);
+
+const char* c_prgm_to_menmonic(const unsigned char* rega_nibbles);

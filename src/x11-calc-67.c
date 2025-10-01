@@ -46,6 +46,7 @@
 #include <stdarg.h>    /* strlen(), etc. */
 #include <stdio.h>     /* fprintf(), etc. */
 #include <stdlib.h>    /* getenv(), etc. */
+#include <string.h>    /* strcmp */
 
 #include <X11/Xlib.h>  /* XOpenDisplay(), etc. */
 #include <X11/Xutil.h> /* XSizeHints etc. */
@@ -96,7 +97,8 @@ void v_init_buttons(struct obutton *h_button[]) {
    i_left += (KEY_WIDTH + KEY_GAP);
    h_button[i_count++] = h_button_create(00222, 000, "DSP", "FIX", "SCI", "ENG", h_normal_font, h_small_font, h_alternate_font, i_left, i_top, KEY_WIDTH, KEY_HEIGHT, False, False, GREEN, YELLOW, MID_BLUE, BLACK);
    i_left += (KEY_WIDTH + KEY_GAP);
-   h_button[i_count++] = h_button_create(00221, 000, "(i)", "RND", "", "X-I", h_normal_font, h_small_font, h_alternate_font, i_left, i_top, KEY_WIDTH, KEY_HEIGHT, False, False, GREEN, YELLOW, BLACK, BLACK);
+   // kbd shortcut = i
+   h_button[i_count++] = h_button_create(00221, 'i', "(i)", "RND", "", "X-I", h_normal_font, h_small_font, h_alternate_font, i_left, i_top, KEY_WIDTH, KEY_HEIGHT, False, False, GREEN, YELLOW, BLACK, BLACK);
    i_left += (KEY_WIDTH + KEY_GAP);
    h_button[i_count++] = h_button_create(00220, ' ', "SST", "LBL", "f", "BST", h_normal_font, h_small_font, h_alternate_font, i_left, i_top, KEY_WIDTH, KEY_HEIGHT, False, False, GREEN, YELLOW, MID_BLUE, BLACK);
 
@@ -107,9 +109,11 @@ void v_init_buttons(struct obutton *h_button[]) {
    i_left += (KEY_WIDTH + KEY_GAP);
    h_button[i_count++] = h_button_create(00023, 'g', "g", "", "", "", h_normal_font, h_small_font, h_alternate_font, i_left, i_top, KEY_WIDTH, KEY_HEIGHT, False, False, LIGHT_BLUE, BACKGROUND, LIGHT_BLUE, LIGHT_BLUE);
    i_left += (KEY_WIDTH + KEY_GAP);
-   h_button[i_count++] = h_button_create(00022, 000, "STO", "DSZ", "(i) ", "STO I", h_normal_font, h_small_font, h_alternate_font, i_left, i_top, KEY_WIDTH, KEY_HEIGHT, False, False, GREEN, YELLOW, MID_BLUE, BLACK);
+   // kbd shortcut = s
+   h_button[i_count++] = h_button_create(00022, 's', "STO", "DSZ", "(i) ", "STO I", h_normal_font, h_small_font, h_alternate_font, i_left, i_top, KEY_WIDTH, KEY_HEIGHT, False, False, GREEN, YELLOW, MID_BLUE, BLACK);
    i_left += (KEY_WIDTH + KEY_GAP);
-   h_button[i_count++] = h_button_create(00021, 000, "RCL", " ISZ", "(i)", "RCL I", h_normal_font, h_small_font, h_alternate_font, i_left, i_top, KEY_WIDTH, KEY_HEIGHT, False, False, GREEN, YELLOW, MID_BLUE, BLACK);
+   // kbd shortcut = r
+   h_button[i_count++] = h_button_create(00021, 'r', "RCL", " ISZ", "(i)", "RCL I", h_normal_font, h_small_font, h_alternate_font, i_left, i_top, KEY_WIDTH, KEY_HEIGHT, False, False, GREEN, YELLOW, MID_BLUE, BLACK);
    i_left += (KEY_WIDTH + KEY_GAP);
    h_button[i_count++] = h_button_create(00020, 'h', "h", "", "", "", h_normal_font, h_small_font, h_alternate_font, i_left, i_top, KEY_WIDTH, KEY_HEIGHT, False, False, BLACK, BLACK, BLACK, BLACK);
 
@@ -166,8 +170,327 @@ void v_init_buttons(struct obutton *h_button[]) {
    i_left += (KEY_NUMERIC + 2 * KEY_GAP );
    h_button[i_count++] = h_button_create(00161, '.', ".", "INT", "FRAC", "HMS+", h_large_font, h_small_font, h_alternate_font, i_left, i_top, KEY_NUMERIC, KEY_HEIGHT, False, False, LIGHT_GRAY, YELLOW, MID_BLUE, BLACK);
    i_left += (KEY_NUMERIC + 2 * KEY_GAP );
-   h_button[i_count++] = h_button_create(00160, 000, "R/S", "-x-", "STK", "SPACE", h_normal_font, h_small_font, h_alternate_font, i_left, i_top, KEY_NUMERIC, KEY_HEIGHT, False, False, LIGHT_GRAY, YELLOW, MID_BLUE, BLACK);
+   // kbd shortcut = x
+   h_button[i_count++] = h_button_create(00160, 'x', "R/S", "-x-", "STK", "SPACE", h_normal_font, h_small_font, h_alternate_font, i_left, i_top, KEY_NUMERIC, KEY_HEIGHT, False, False, LIGHT_GRAY, YELLOW, MID_BLUE, BLACK);
 }
+
+typedef struct
+{
+   char* prgm_keycodes;
+   char* prgm_mnemonics;
+} prgm_entry_t;
+
+prgm_entry_t prgm_entries[256] =
+{
+   { "    84", "R/S" },    // 00  RS
+   { "  3562", "1/x" },    // 01  x^-1  x-}  1/x
+   { "  3254", "x2" },     // 02
+   { "  3154", "SQRTx" },  // 03  √x  SQrt
+   { "  3182", "%" },      // 04  %   Perc
+   { "    21", "E+" },     // 05  Σ+  E+
+   { "  3563", "y^X" },    // 06  y^x yX
+   { "  3152", "LN" },     // 07  Ln
+   { "  3252", "e^X" },    // 08  eX
+   { "  3272", "R-P" },    // 09  R→P
+   { "  3162", "SIN" },    // 0a
+   { "  3163", "COS" },    // 0b
+   { "  3164", "TAN" },    // 0c
+   { "  3172", "P-R" },    // 0d  R←P
+   { "  3522", "RTN" },    // 0e  RTN  rtn
+   { "  3421", "RCL E+"},  // 0f  RCL Σ+
+
+   { "    00", "0" },      // 10
+   { "    01", "1" },      // 11
+   { "    02", "2" },      // 12
+   { "    03", "3" },      // 13
+   { "    04", "4" },      // 14
+   { "    05", "5" },      // 15
+   { "    06", "6" },      // 16
+   { "    07", "7" },      // 17
+   { "    08", "8" },      // 18
+   { "    09", "9" },      // 19
+   { "    83", "." },      // 1a
+   { "    41", "ENTER" },  // 1b  ENTER↑ Enter
+   { "    42", "CHS" },    // 1c
+   { "    43", "EEX" },    // 1d
+   { "    81", "/" },      // 1e
+ //{ "    ??", "spare" },  // 1f
+
+   { "  3572", "PAUSE" },  // 20
+   { "  3581", "N!" },     // 21  n!  FACUL
+   { "  3121", "MEANx" },  // 22  x bar  ~
+   { "  3221", "s" },      // 23
+   { "  3282", "%CH" },    // 24  %CH  PercCh
+   { "  3521", "E-" },     // 25  Σ-
+   { "  3564", "ABS" },    // 26
+   { "  3153", "LOG" },    // 27
+   { "  3253", "10^X" },   // 28  10X  ioX
+   { "  3183", "INT" },    // 29  Int
+   { "  3262", "SIN-1" },  // 2a  SIN-}
+   { "  3263", "COS-1" },  // 2b  COS-}
+   { "  3264", "TAN-1" },  // 2c  TAN-}
+   { "  3283", "FRAC" },   // 2d
+   { "  3124", "RND" },    // 2e  RND  rnd
+// { "  3224", "spare 2f"}, // 2f -SPARE- (default)
+   { "  3443", "RCL (x)"},  // 2f -SPARE- (modified)
+
+   { "  3552", "X-Y" },     // 30  x<>y
+   { "  3553", "Rv" },      // 31  R↓
+   { "    44", "CLx" },     // 32
+   { "  3523", "ENG" },     // 33
+   { "  3123", "FIX" },     // 34
+   { "  3184", "PRTx" },    // 35
+   { "  3223", "SCI" },     // 36
+   { "    61", "+" },       // 37
+   { "    51", "-" },       // 38
+   { "    71", "x" },       // 39
+   { "  3273", "D-R" },     // 3a  D→R
+   { "  3173", "R-D" },     // 3b  D←R
+   { "  3274", "H-HMS" },   // 3c
+   { "  3174", "HMS-H" },   // 3d
+   { "  3324", "STO (i)" }, // 3e
+   { "  3424", "RCL (i)" }, // 3f
+
+   { "  3583", "HMS+" },    // 40
+   { "  3584", "SPACE" },   // 41
+   { "  3284", "PRSTK" },   // 42
+   { "  3582", "LASTx" },   // 43
+   { "  3141", "WDATA" },   // 44
+   { "  3241", "MERGE" },   // 45
+   { "  3524", "X-I" },     // 46  x↔I
+   { "  3554", "R^" },      // 47  R↑
+   { "  3573", "Pi" },      // 48  π
+   { "  3541", "DEG" },     // 49  P↔S
+   { "  3542", "RAD" },     // 4a
+   { "  3543", "GRAD" },    // 4b
+   { "  3142", "P-S" },     // 4c
+   { "  3143", "CLREG" },   // 4d
+   { "  3574", "PRREG" },   // 4e
+   { "  3343", "STO (x)"},  // 4f -SPARE- (default 35 73 - Pi)
+
+   { "  3261", "x!=y?" },   // 50
+   { "  3251", "x=y?" },    // 51
+   { "  3281", "x>y?" },    // 52
+   { "  3161", "x!=0?" },   // 53
+   { "  3151", "x=0?" },    // 54
+   { "  3181", "x>0?" },    // 55
+   { "  3171", "x<0?" },    // 56
+   { "  3271", "x<=y?" },   // 57
+   { "357100", "F0?" },     // 58
+   { "357101", "F1?" },     // 59
+   { "357102", "F2?" },     // 5a
+   { "357103", "F3?" },     // 5b
+   { "  3134", "ISZ I" },   // 5c
+   { "  3234", "ISZ (i)" }, // 5d
+   { "  3133", "DSZ I" },   // 5e
+   { "  3233", "DSZ (i)" }, // 5f
+
+   { "  2300", "DSP 0" },   // 60
+   { "  2301", "DSP 1" },   // 61
+   { "  2302", "DSP 2" },   // 62
+   { "  2303", "DSP 3" },   // 63
+   { "  2304", "DSP 4" },   // 64
+   { "  2305", "DSP 5" },   // 65
+   { "  2306", "DSP 6" },   // 66
+   { "  2307", "DSP 7" },   // 67
+   { "  2308", "DSP 8" },   // 68
+   { "  2309", "DSP 9" },   // 69
+   { "356100", "CF 0" },    // 6a
+   { "356101", "CF 1" },    // 6b
+   { "356102", "CF 2" },    // 6c
+   { "356103", "CF 3" },    // 6d
+   { "356104", "spare 6e" },// 6e (CF 4)
+   { "  2324", "DSP (i)" }, // 6f
+
+   { "  3400", "RCL 0" },    // 70
+   { "  3401", "RCL 1" },    // 71
+   { "  3402", "RCL 2" },    // 72
+   { "  3403", "RCL 3" },    // 73
+   { "  3404", "RCL 4" },    // 74
+   { "  3405", "RCL 5" },    // 75
+   { "  3406", "RCL 6" },    // 76
+   { "  3407", "RCL 7" },    // 77
+   { "  3408", "RCL 8" },    // 78
+   { "  3409", "RCL 9" },    // 79
+   { "  3411", "RCL A" },    // 7a
+   { "  3412", "RCL B" },    // 7b
+   { "  3413", "RCL C" },    // 7c
+   { "  3414", "RCL D" },    // 7d
+   { "  3415", "RCL E" },    // 7e
+   { "  3534", "RCL I" },    // 7f
+
+   { "338100", "STO/ 0" },   // 80
+   { "338101", "STO/ 1" },   // 81
+   { "338102", "STO/ 2" },   // 82
+   { "338103", "STO/ 3" },   // 83
+   { "338104", "STO/ 4" },   // 84
+   { "338105", "STO/ 5" },   // 85
+   { "338106", "STO/ 6" },   // 86
+   { "338107", "STO/ 7" },   // 87
+   { "338108", "STO/ 8" },   // 88
+   { "338109", "STO/ 9" },   // 89
+   { "355100", "SF 0" },     // 8a
+   { "355101", "SF 1" },     // 8b
+   { "355102", "SF 2" },     // 8c
+   { "355103", "SF 3" },     // 8d
+// { "355104", "spare 8e" }, // 8e
+   { "  2243", "GTO (x)" },  // ff  -SPARE- (modified)
+   { "338124", "STO/ (i)" }, // 8f
+
+   { "  3300", "STO 0" },    // 90
+   { "  3301", "STO 1" },    // 91
+   { "  3302", "STO 2" },    // 92
+   { "  3303", "STO 3" },    // 93
+   { "  3304", "STO 4" },    // 94
+   { "  3305", "STO 5" },    // 95
+   { "  3306", "STO 6" },    // 96
+   { "  3307", "STO 7" },    // 97
+   { "  3308", "STO 8" },    // 98
+   { "  3309", "STO 9" },    // 99
+   { "  3311", "STO A" },    // 9a
+   { "  3312", "STO B" },    // 9b
+   { "  3313", "STO C" },    // 9c
+   { "  3314", "STO D" },    // 9d
+   { "  3315", "STO E" },    // 9e
+   { "  3533", "STO I" },    // 9f
+
+   { "335100", "STO- 0" },   // a0
+   { "335101", "STO- 1" },   // a1
+   { "335102", "STO- 2" },   // a2
+   { "335103", "STO- 3" },   // a3
+   { "335104", "STO- 4" },   // a4
+   { "335105", "STO- 5" },   // a5
+   { "335106", "STO- 6" },   // a6
+   { "335107", "STO- 7" },   // a7
+   { "335108", "STO- 8" },   // a8
+   { "335109", "STO- 9" },   // a9
+   { "322211", "GSB a" },    // aa
+   { "322212", "GSB b" },    // ab
+   { "322213", "GSB c" },    // ac
+   { "322214", "GSB d" },    // ad
+   { "322215", "GSB e" },    // ae
+   { "335124", "STO- (i)" }, // af
+
+   { "312200", "GSB 0" },    // b0
+   { "312201", "GSB 1" },    // b1
+   { "312202", "GSB 2" },    // b2
+   { "312203", "GSB 3" },    // b3
+   { "312204", "GSB 4" },    // b4
+   { "312205", "GSB 5" },    // b5
+   { "312206", "GSB 6" },    // b6
+   { "312207", "GSB 7" },    // b7
+   { "312208", "GSB 8" },    // b8
+   { "312209", "GSB 9" },    // b9
+   { "312211", "GSB A" },    // ba
+   { "312212", "GSB B" },    // bb
+   { "312213", "GSB C" },    // bc
+   { "312214", "GSB D" },    // bd
+   { "312215", "GSB E" },    // be
+   { "312224", "GSB (i)" },  // bf
+
+   { "336100", "STO+ 0" },   // c0
+   { "336101", "STO+ 1" },   // c1
+   { "336102", "STO+ 2" },   // c2
+   { "336103", "STO+ 3" },   // c3
+   { "336104", "STO+ 4" },   // c4
+   { "336105", "STO+ 5" },   // c5
+   { "336106", "STO+ 6" },   // c6
+   { "336107", "STO+ 7" },   // c7
+   { "336108", "STO+ 8" },   // c8
+   { "336109", "STO+ 9" },   // c9
+   { "223111", "GTO a" },    // ca
+   { "223112", "GTO b" },    // cb
+   { "223113", "GTO c" },    // cc
+   { "223114", "GTO d" },    // cd
+   { "223115", "GTO e" },    // ce
+   { "336124", "STO+ (i)" }, // cf
+
+   { "  2200", "GTO 0" },    // d0
+   { "  2201", "GTO 1" },    // d1
+   { "  2202", "GTO 2" },    // d2
+   { "  2203", "GTO 3" },    // d3
+   { "  2204", "GTO 4" },    // d4
+   { "  2205", "GTO 5" },    // d5
+   { "  2206", "GTO 6" },    // d6
+   { "  2207", "GTO 7" },    // d7
+   { "  2208", "GTO 8" },    // d8
+   { "  2209", "GTO 9" },    // d9
+   { "  2211", "GTO A" },    // da
+   { "  2212", "GTO B" },    // db
+   { "  2213", "GTO C" },    // dc
+   { "  2214", "GTO D" },    // dd
+   { "  2215", "GTO E" },    // de
+   { "  2224", "GTO (i)" },  // df
+
+   { "337100", "STOx 0" },   // e0
+   { "337101", "STOx 1" },   // e1
+   { "337102", "STOx 2" },   // e2
+   { "337103", "STOx 3" },   // e3
+   { "337104", "STOx 4" },   // e4
+   { "337105", "STOx 5" },   // e5
+   { "337106", "STOx 6" },   // e6
+   { "337107", "STOx 7" },   // e7
+   { "337108", "STOx 8" },   // e8
+   { "337109", "STOx 9" },   // e9
+   { "322511", "LBL a" },    // ea
+   { "322512", "LBL b" },    // eb
+   { "322513", "LBL c" },    // ec
+   { "322514", "LBL d" },    // ed
+   { "322515", "LBL e" },    // ee
+   { "337124", "STOx (i)" }, // ef
+
+   { "312500", "LBL 0" },    // f0
+   { "312501", "LBL 1" },    // f1
+   { "312502", "LBL 2" },    // f2
+   { "312503", "LBL 3" },    // f3
+   { "312504", "LBL 4" },    // f4
+   { "312505", "LBL 5" },    // f5
+   { "312506", "LBL 6" },    // f6
+   { "312507", "LBL 7" },    // f7
+   { "312508", "LBL 8" },    // f8
+   { "312509", "LBL 9" },    // f9
+   { "312511", "LBL A" },    // fa
+   { "312512", "LBL B" },    // fb
+   { "312513", "LBL C" },    // fc
+   { "312514", "LBL D" },    // fd
+   { "312515", "LBL E" },    // fe
+   { "312524", "spare ff" }, // ff  -SPARE- (default)
+
+   { NULL, NULL }            // end-of-table
+};
+
+/*
+** Translate the prgm step content in reg-a to a HP67 mnemonic
+**
+*/
+const char* c_prgm_to_menmonic(const unsigned char* rega_nibbles)
+{
+   // reg-a content in prgm mode
+   // 13 12 11 10  9  8  7  6  5  4  3  2  1  0
+   // xx xx xx 0f 0f 0f xx xx 0f xx xx 0f xx xx
+
+   if (rega_nibbles[10] != 0x0f || rega_nibbles[9] != 0x0f || rega_nibbles[8] != 0x0f ||
+       rega_nibbles[5] != 0x0f || rega_nibbles[2] != 0x0f)
+      return NULL;  // content is not a prgm line
+
+   char rega_codes[7];
+   rega_codes[0] = rega_nibbles[7] == 0xf ? ' ' : rega_nibbles[7] + '0';
+   rega_codes[1] = rega_nibbles[6] == 0xf ? ' ' : rega_nibbles[6] + '0';
+   rega_codes[2] = rega_nibbles[4] == 0xf ? ' ' : rega_nibbles[4] + '0';
+   rega_codes[3] = rega_nibbles[3] == 0xf ? ' ' : rega_nibbles[3] + '0';
+   rega_codes[4] = rega_nibbles[1] + '0';
+   rega_codes[5] = rega_nibbles[0] + '0';
+   rega_codes[6] = 0;
+
+   prgm_entry_t* p = prgm_entries;
+   while (p->prgm_keycodes != NULL) {
+      if (strcmp(p->prgm_keycodes, rega_codes) == 0)
+         return p->prgm_mnemonics;
+      p++;
+   }
+   return NULL;  // nothing found
+}
+
 
 int i_rom[ROM_SIZE] = {
 00000, 01743, 00264, 00217, 01074, 00330, 01160, 01570,

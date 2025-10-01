@@ -521,6 +521,9 @@ int main(int argc, char *argv[])
    int i_zoom = 0;                     /* Zoom level */
    int i_trap = -1;                    /* Trap instruction */
    int i_ticks = -1;
+#if defined(HP67)
+   int i_fast = 1;   /* calculator speed, 0 = normal, 1 = fast */
+#endif
 
 #if defined(CONTINIOUS)
    char *s_pathname = NULL;
@@ -795,7 +798,7 @@ int main(int argc, char *argv[])
 
    o_window_position.width = (int)(WIDTH * f_scale);  /* Window width in pixels */
    o_window_position.height = (int)(HEIGHT * f_scale);  /* Window height in pixels */
-   o_window_position.x = (i_screen_width - o_window_position.width) / 2 ;  /* Centre window on screen - ignored by most window managers but useful in kiosk mode */
+   o_window_position.x = (i_screen_width - o_window_position.width) * 3/4;  /* Centre window on screen - ignored by most window managers but useful in kiosk mode */
    o_window_position.y = (i_screen_height - o_window_position.height) / 2;
 
    o_window_geometry = o_window_position;  /* Save window position */
@@ -958,6 +961,10 @@ int main(int argc, char *argv[])
    i_count = 0;
    while (!b_abort)  /* Main program event loop */
    {
+#if defined(HP67)
+      if (h_processor->turbo_off)
+         i_wait(1);             /* nop in delay loop, delay a bit */
+#endif
       i_count--;
       if (i_count < 0)
       {
@@ -965,8 +972,18 @@ int main(int argc, char *argv[])
          i_display_draw(x_display, x_buffer, i_screen, h_display);  /* Redraw display */
          XCopyArea(x_display, x_buffer, x_window, DefaultGC(x_display, i_screen), 0, 0, o_window_position.width, o_window_position.height, 0, 0);
          i_count = INTERVAL;
+      // fprintf(stdout, "%d: %d\n", i_count, h_processor->flags[DISPLAY_ENABLE]);
 #if defined(HP67)
-         i_wait(INTERVAL / 4);   /* Sleep for ~6.25 ms per tick */
+         // kjc: modified
+         if (i_fast && h_processor->crc[PAUSE])
+            i_wait(INTERVAL / 8);    /* 2x speed */
+         else if (i_fast == 0)
+            i_wait(INTERVAL / 4);    /* Sleep for ~6.25 ms per tick (normal speed) */
+         else {
+            //i_wait(INTERVAL / 8);  /* 2x speed */
+            i_wait(1);               /* 6x speed */
+            //i_wait(0);             /* super speed */
+         }
 #elif defined(HP55)
          i_wait(INTERVAL / 3.1); /* Sleep for ~???? ms per tick */
 #elif defined(VOYAGER) || defined(SPICE)
@@ -1024,6 +1041,24 @@ int main(int argc, char *argv[])
 #endif
                b_run = True;
             }
+#if defined(HP67)
+            else if (h_keyboard->key == (XK_I & 0x1f)) /* Ctrl-I to signal Insert card */
+            {
+               fprintf(stdout, "\nA card is inserted\n");
+               h_processor->crc[CARD] = True;               /* kjc: cleared at motor start & stop */
+               h_processor->flags[DISPLAY_ENABLE] = False;  /* kjc: disable display during file-choose */
+            }
+            else if (h_keyboard->key == (XK_F & 0x1f)) /* Ctrl-F fast speed */
+            {
+               fprintf(stdout, "\nTurbo mode\n");
+               i_fast = 1;
+            }
+            else if (h_keyboard->key == (XK_N & 0x1f)) /* Ctrl-N normal speed */
+            {
+               fprintf(stdout, "\nNormal mode\n");
+               i_fast = 0;
+            }
+#endif
             else  /* Check for matching button */
             {
                int i_count;

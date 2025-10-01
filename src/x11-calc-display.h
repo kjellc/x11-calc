@@ -57,6 +57,8 @@
 
 #if !(defined(HP10c) || defined(HP11c) || defined(HP12c) || defined(HP15c) || defined(HP16c))
 
+#if 1 // kjc: 0 for testing alt font
+
 #define DISPLAY_ONE        0x0030
 #define DISPLAY_TWO        0x006d
 #define DISPLAY_THREE      0x0079
@@ -81,6 +83,55 @@
 #define DISPLAY_F          0x0047
 #define DISPLAY_TEST       0x01ff
 
+#else
+
+#include "../temp/seven-seg-ascii.c"
+
+// character testing
+
+#define DISPLAY_ZERO       0x3f
+#define DISPLAY_ONE        DISPLAY_x
+#define DISPLAY_TWO        DISPLAY_y
+#define DISPLAY_THREE      DISPLAY_QM
+#define DISPLAY_FOUR       DISPLAY_SPACE
+#define DISPLAY_FIVE       0xc8
+#define DISPLAY_SIX        0x23
+#define DISPLAY_SEVEN      0x6d
+#define DISPLAY_EIGHT      DISPLAY_d
+#define DISPLAY_NINE       DISPLAY_d
+
+#define DISPLAY_MINUS      0x0040
+#define DISPLAY_DECIMAL    0  // 0x0080
+
+#define DISPLAY_COMMA      0x0100
+#define DISPLAY_COLON      0x0200
+
+#endif
+
+#if 0
+#define DISPLAY_r          DISPLAY_R  //0x0044
+#define DISPLAY_c          0x004c
+#define DISPLAY_C          DISPLAY_Q  //0x000f
+#define DISPLAY_o          0x003f  //0x005c
+#define DISPLAY_d          DISPLAY_QM //0x007c
+#define DISPLAY_P          0x0067
+#define DISPLAY_E          0x004f
+#define DISPLAY_TEST       0x01ff
+
+#define DISPLAY_A          0x37
+#define DISPLAY_w          0x9c
+#define DISPLAY_m          0xd4
+#define DISPLAY_x          0x94
+#define DISPLAY_k          0x96
+#define DISPLAY_z          0xc8
+#define DISPLAY_Q          0xbf
+#define DISPLAY_V          0xa2
+#define DISPLAY_Y          0xe2
+#define DISPLAY_QM         0xe1
+#define DISPLAY_R          0xe7
+
+#endif
+
 #endif
 
 
@@ -102,6 +153,10 @@ struct odisplay/* Calculator display structure. */
 #if defined(INDECATORS)
    struct olabel* label[INDECATORS];
 #endif
+#if defined(HP67)
+   struct olabel* label_mnemonic;
+#endif
+   unsigned char last_a_nibble[REG_SIZE];
 } ;
 
 struct odisplay *h_display_create(int i_index,
