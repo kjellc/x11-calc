@@ -69,7 +69,7 @@
 #define DATE           "10 Sep 25"
 #define AUTHOR         "MT"
 
-#if defined(HP10c) || defined(HP11c) || defined(HP12c)|| defined(HP15c) || defined(HP16c)
+#if defined(HP10c) || defined(HP11c) || defined(HP12c)|| defined(HP15c) || defined(HP16c) || defined(HP67)
 #define HEXADECIMAL
 #endif
 
@@ -90,7 +90,11 @@ const char *h_msg_address = "%1x-%03x";
 const char *h_msg_number = "%03x";
 const char *h_msg_negative_offset = "-0x%x";
 const char *h_msg_positive_offset = "+0x%x";
+#if defined(HP67)
+const char *h_msg_rom = "%o:%o";
+#else
 const char *h_msg_rom = "%x:%x";
+#endif
 #else
 const char *h_msg_opcode = "%1o-%04o %04o  ";
 const char *h_msg_address = "%1o-%04o";
