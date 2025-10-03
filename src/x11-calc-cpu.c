@@ -1656,7 +1656,7 @@ void v_processor_tick(oprocessor *h_processor) /* Decode and execute a single in
                 */
                case 00100: /* 040 test/clear motor on (crc buffer ready) */
                   if (h_processor->trace) fprintf(stdout, "test motor on (crc ready)");
-                  h_processor->status[3] = True;     /* device/buffer is always ready */
+                  h_processor->status[3] = (h_processor->card_file != NULL);  /* device/buffer ready if not canceled */
                   h_processor->crc[BUFFER] = True ;  /* Buffer is ready after test/clear */
                   break;
                case 00300: /* 080 test mode flag */
