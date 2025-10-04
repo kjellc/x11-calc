@@ -565,7 +565,6 @@ int main(int argc, char *argv[])
                      i_value = strtol(argv[i_count + 1], &end_ptr, base);
                      if (*end_ptr != 0) /* if OK, should point to EOS */
                         v_error(EINVAL, h_err_invalid_operand, argv[i_count + 1]);
-                     printf("Breakpoint = 0x%x\n", i_value);
                      if ((i_value < 0) || (i_value > ROM_SIZE) || (i_value > 017777)) /* Check address range, allow bank */
                         v_error(EINVAL, h_err_numeric_range, argv[i_count + 1]);
                      else
